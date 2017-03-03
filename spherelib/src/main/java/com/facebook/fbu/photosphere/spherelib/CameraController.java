@@ -29,7 +29,8 @@ public class CameraController {
     private CameraView mParentCameraView;
 
     private PhotoSphereConstructor mPhotoSphereConstructor;
-
+    private SurfaceTexture msurfaceTexture;
+    
     private boolean mBusy = false;
 
     public static CameraController getNewInstance(
@@ -62,6 +63,7 @@ public class CameraController {
         mContext = context;
         mPhotoSphereConstructor = photoSphereConstructor;
         mCamera = camera;
+        msurfaceTexture = new SurfaceTexture(MODE_PRIVATE);
         List<Camera.Size> sizeList = mCamera.getParameters().getSupportedPictureSizes();
         Point chosenSize = new Point(-1, -1);
         // we choose the camera size to be the minimum size with width at least 1000
@@ -79,8 +81,7 @@ public class CameraController {
             params.setPictureSize(chosenSize.x, chosenSize.y);
             mCamera.setParameters(params);
         }
-
-        mCamera.startPreview();
+        
         mOrientationManager = orientationManager;
 
     }
@@ -95,6 +96,16 @@ public class CameraController {
             e.printStackTrace();
         }
     }
+    
+    
+   private void previewCamera(){
+        try {
+            mCamera.setPreviewTexture(msurfaceTexture);
+            mCamera.startPreview();
+       } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public CameraView.Picture takePicture(
             String fileName,
@@ -106,9 +117,11 @@ public class CameraController {
         mCurrentPicture = mParentCameraView.getNewPicture();
         mCurrentReferencePoint = referencePoint;
         mCurrentPicture.setRotationMatrix(mOrientationManager.getPositionRotMatrix());
+        previewCamera();
         mCamera.takePicture(null, null, new Camera.PictureCallback() {
             @Override
             public void onPictureTaken(byte[] data, Camera camera) {
+                previewCamera();
                 mCamera.takePicture(null, null, new Camera.PictureCallback() {
                     @Override
                     public void onPictureTaken(byte[] data, Camera camera) {
